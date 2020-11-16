@@ -388,6 +388,7 @@ func bootstrapLedger(
 func configureTransactionValidator(conf config, blocks *blocks) *access.TransactionValidator {
 	return access.NewTransactionValidator(
 		blocks,
+		conf.GetChainID().Chain(),
 		access.TransactionValidationOptions{
 			Expiry:                       conf.TransactionExpiry,
 			ExpiryBuffer:                 0,
@@ -395,6 +396,7 @@ func configureTransactionValidator(conf config, blocks *blocks) *access.Transact
 			AllowUnknownReferenceBlockID: false,
 			MaxGasLimit:                  MaxGasLimit,
 			CheckScriptsParse:            true,
+			MaxTxSizeLimit:               flowgo.DefaultMaxTxSizeLimit,
 		},
 	)
 }

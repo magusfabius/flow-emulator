@@ -60,20 +60,20 @@ func TestSubmitTransaction(t *testing.T) {
 func TestSubmitTransaction_Invalid(t *testing.T) {
 
 	t.Run("Empty transaction", func(t *testing.T) {
-		b, err := emulator.NewBlockchain()
-		require.NoError(t, err)
-
-		t.Skip("TODO: transaction validation")
-
-		// Create empty transaction (no required fields)
-		tx := flow.NewTransaction()
-
-		err = tx.SignEnvelope(b.ServiceKey().Address, b.ServiceKey().Index, b.ServiceKey().Signer())
-		assert.NoError(t, err)
-
-		// Submit tx
-		err = b.AddTransaction(*tx)
-		assert.IsType(t, err, &emulator.IncompleteTransactionError{})
+		//b, err := emulator.NewBlockchain()
+		//require.NoError(t, err)
+		//
+		//t.Skip("TODO: transaction validation")
+		//
+		//// Create empty transaction (no required fields)
+		//tx := flow.NewTransaction()
+		//
+		//err = tx.SignEnvelope(b.ServiceKey().Address, b.ServiceKey().Index, b.ServiceKey().Signer())
+		//assert.NoError(t, err)
+		//
+		//// Submit tx
+		//err = b.AddTransaction(*tx)
+		//assert.IsType(t, err, &emulator.IncompleteTransactionError{})
 	})
 
 	t.Run("Missing script", func(t *testing.T) {
@@ -414,13 +414,11 @@ func TestSubmitTransaction_EnvelopeSignature(t *testing.T) {
 
 		addTwoScript, _ := deployAndGenerateAddTwoScript(t, b)
 
-		addressA := flow.HexToAddress("0000000000000000000000000000000000000002")
-
 		tx := flow.NewTransaction().
 			SetScript([]byte(addTwoScript)).
 			SetGasLimit(emulator.MaxGasLimit).
 			SetProposalKey(b.ServiceKey().Address, b.ServiceKey().Index, b.ServiceKey().SequenceNumber).
-			SetPayer(addressA).
+			SetPayer(b.ServiceKey().Address).
 			AddAuthorizer(b.ServiceKey().Address)
 
 		err = tx.SignPayload(b.ServiceKey().Address, b.ServiceKey().Index, b.ServiceKey().Signer())
@@ -439,7 +437,7 @@ func TestSubmitTransaction_EnvelopeSignature(t *testing.T) {
 		b, err := emulator.NewBlockchain()
 		require.NoError(t, err)
 
-		invalidAddress := flow.HexToAddress("0000000000000000000000000000000000000002")
+		invalidAddress := flow.HexToAddress("02")
 
 		tx := flow.NewTransaction().
 			SetScript([]byte(`transaction { execute { } }`)).
@@ -455,12 +453,7 @@ func TestSubmitTransaction_EnvelopeSignature(t *testing.T) {
 		assert.NoError(t, err)
 
 		err = b.AddTransaction(*tx)
-		assert.NoError(t, err)
-
-		result, err := b.ExecuteNextTransaction()
-		assert.NoError(t, err)
-
-		unittest.AssertFVMErrorType(t, &fvm.InvalidSignaturePublicKeyDoesNotExistError{}, result.Error)
+		assert.Error(t, err)
 	})
 
 	t.Run("Invalid key", func(t *testing.T) {
@@ -559,7 +552,10 @@ func TestSubmitTransaction_PayloadSignatures(t *testing.T) {
 		b, err := emulator.NewBlockchain()
 		require.NoError(t, err)
 
-		addressA := flow.HexToAddress("0000000000000000000000000000000000000002")
+		accountKeyB, _ := accountKeys.NewWithSigner()
+		accountKeyB.SetWeight(flow.AccountKeyWeightThreshold)
+		accountAddressB, err := b.CreateAccount([]*flow.AccountKey{accountKeyB}, nil)
+		assert.NoError(t, err)
 
 		addTwoScript, _ := deployAndGenerateAddTwoScript(t, b)
 
@@ -568,7 +564,7 @@ func TestSubmitTransaction_PayloadSignatures(t *testing.T) {
 			SetGasLimit(emulator.MaxGasLimit).
 			SetProposalKey(b.ServiceKey().Address, b.ServiceKey().Index, b.ServiceKey().SequenceNumber).
 			SetPayer(b.ServiceKey().Address).
-			AddAuthorizer(addressA)
+			AddAuthorizer(accountAddressB)
 
 		err = tx.SignEnvelope(b.ServiceKey().Address, b.ServiceKey().Index, b.ServiceKey().Signer())
 		assert.NoError(t, err)
